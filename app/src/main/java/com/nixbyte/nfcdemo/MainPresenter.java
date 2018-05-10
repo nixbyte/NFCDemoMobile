@@ -13,7 +13,10 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
+
+import java.util.ArrayList;
 
 public class MainPresenter implements Presenter<MainView> {
 
@@ -22,18 +25,38 @@ public class MainPresenter implements Presenter<MainView> {
     private MainView view;
     private Activity activity;
     private BroadcastReceiver mMessageReceiver;
+    private ArrayList<String> log;
+    private ArrayAdapter<String> adapter;
+
+    private static final int LOG_SIZE = 300;
 
 
     public MainPresenter(Activity activity) {
         this.activity = activity;
 
+        log = new ArrayList<>();
+        adapter = new ArrayAdapter<>(activity,android.R.layout.simple_spinner_dropdown_item,log);
+
         this.mMessageReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 // Get extra data included in the Intent
-                boolean message = intent.getBooleanExtra("status",false);
+                boolean isActive = intent.getBooleanExtra("status",false);
 
-                if(message)
+                String message = intent.getStringExtra("message");
+
+                if(message != null) {
+                    if (log.size() < LOG_SIZE) {
+                        log.add(0,message);
+                    } else {
+                        log.clear();
+                        log.add(0,message);
+                    }
+                }
+
+                adapter.notifyDataSetChanged();
+
+                if(isActive)
                     view.status.setText("NFC считыватель активен");
                 else
                     view.status.setText("NFC считыватель не активен");
@@ -49,13 +72,12 @@ public class MainPresenter implements Presenter<MainView> {
     public void onViewAttached(final MainView view) {
         this.view = view;
 
+        this.view.log.setAdapter(adapter);
+
         NfcManager manager = (NfcManager) activity.getSystemService(Context.NFC_SERVICE);
         NfcAdapter adapter = manager.getDefaultAdapter();
 
         final Intent intent = new Intent(activity,MyHostApduService.class);
-
-
-
 
         if (adapter != null && adapter.isEnabled()) {
             this.view.nfcServiceStatus.setText("NFC сервис запущен");
@@ -127,15 +149,5 @@ public class MainPresenter implements Presenter<MainView> {
     @Override
     public void onDestroyed() {
         this.view = null;
-    }
-
-    private boolean isMyServiceRunning(Class<?> serviceClass) {
-        ActivityManager manager = (ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE);
-        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
-            if (serviceClass.getName().equals(service.service.getClassName())) {
-                return true;
-            }
-        }
-        return false;
     }
 }

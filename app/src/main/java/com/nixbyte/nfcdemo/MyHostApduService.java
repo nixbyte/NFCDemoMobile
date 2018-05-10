@@ -31,6 +31,7 @@ public class MyHostApduService extends HostApduService {
             sendReaderStatusToActivity(true);
             return getWelcomeMessage();
         } else {
+            sendReaderMessagesToActivity(new String(apdu));
             return getNextMessage();
         }
     }
@@ -55,6 +56,13 @@ public class MyHostApduService extends HostApduService {
     private void sendReaderStatusToActivity(boolean isActive) {
         Intent intent = new Intent("updates");
         intent.putExtra("status", isActive);
+        LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
+    }
+
+    private void sendReaderMessagesToActivity(String message) {
+        Intent intent = new Intent("updates");
+        intent.putExtra("status", true);
+        intent.putExtra("message", message);
         LocalBroadcastManager.getInstance(getApplicationContext()).sendBroadcast(intent);
     }
 }
